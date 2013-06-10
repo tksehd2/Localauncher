@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="Theme">#eaeaea</color>
+    <color name="TextNormal">#616161</color>
+    <color name="TextAttention">#414141</color>
+</resources>
