@@ -1,21 +1,25 @@
 package kr.toyapps.localauncher;
 
+import java.util.Dictionary;
+import java.util.HashMap;
+
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.content.SharedPreferences.Editor;
 import android.os.Parcel;
 import android.util.Base64;
+import android.util.Log;
 
 public class DataStorage
 {
-	public static DataStorage Instance;
+	public static DataStorage Instance = new DataStorage();
 	
 	private String parcelKey = "SavedData";
-	private Parcel parcel;
+	private HashMap<Integer, LaunchItem> _itemMap; 
 	
 	public DataStorage()
 	{
-		parcel = Parcel.obtain();
+		_itemMap = new HashMap();
 	}
 	
 	public void AddItem(LaunchItem item)
@@ -23,35 +27,77 @@ public class DataStorage
 		if(item == null)
 			return ;
 		
-		parcel.writeParcelable(item, 0);
+		_itemMap.put(item.itemId, item);
 	}
 	
 	public LaunchItem Load(int itemId)
 	{
+		if(_itemMap.containsKey(itemId))
+		{
+			return _itemMap.get(itemId);
+		}
 		return null;
 	}
 	public LaunchItem[] LoadAll()
 	{
+		if(_itemMap.size() > 0)
+		{
+			LaunchItem[] items = new LaunchItem[_itemMap.size()];
+			_itemMap.values().toArray(items);
+			return items;
+		}
 		return null;
 	}
-	
+	public void Clear(Context context)
+	{
+		SharedPreferences prefs = context.getSharedPreferences(parcelKey, Context.MODE_PRIVATE);
+		prefs.edit().clear().commit();
+	}
 	public void Save(Context context)
 	{
-		byte[] data = parcel.marshall();
+		Parcel p = Parcel.obtain();
+	
+		p.writeMap(_itemMap);
 		
-		String encoded = Base64.encodeToString(data, Base64.DEFAULT);
+		byte[] data = p.marshall();
 		
-		SharedPreferences prefs = context.getSharedPreferences(parcelKey, Context.MODE_PRIVATE);
-		Editor edit = prefs.edit();
+		Editor edit = context.getSharedPreferences(parcelKey, Context.MODE_PRIVATE).edit();
 		
-		edit.putString("parcelKey", encoded);
+		edit.putString(parcelKey, Base64.encodeToString(data, Base64.DEFAULT));
+		edit.commit();
+		
+		p.recycle();
 	}
+	
 	public void Load(Context context)
 	{
 		SharedPreferences prefs = context.getSharedPreferences(parcelKey, Context.MODE_PRIVATE);
-		byte[] data = Base64.decode(prefs.getString(parcelKey, "") , Base64.DEFAULT);
 		
-		parcel.unmarshall(data, 0, data.length);
-		parcel.setDataPosition(0);
+		byte[] data = Base64.decode(prefs.getString(parcelKey, ""), Base64.DEFAULT);
+		
+		if(data.length > 0)
+		{
+			Parcel p = Parcel.obtain();
+			
+			p.unmarshall(data, 0, data.length);
+			p.setDataPosition(0);
+			
+			p.readMap(_itemMap, HashMap.class.getClassLoader());
+			
+/*			LaunchItem[] loadItem = (LaunchItem[])p.readParcelableArray(LaunchItem.class.getClassLoader());
+
+			try
+			{
+				for (LaunchItem item : loadItem)
+				{
+					_itemMap.put(item.itemId, item);
+				}
+			} catch (Exception e)
+			{
+				Log.v("LocaLauncher Exception", e.toString());
+			}
+*/
+			p.recycle();
+		}
 	}
 }

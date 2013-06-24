@@ -50,37 +50,36 @@ public class MainActivity extends FragmentActivity implements LocationSource, Co
 	protected void onCreate(Bundle savedInstanceState)
 	{
 		super.onCreate(savedInstanceState);
-
-		if (savedInstanceState != null)
-		{
-			MarkerOptions marker = savedInstanceState.getParcelable("marker");
-			Toast.makeText(this, marker.getTitle(), Toast.LENGTH_SHORT).show();
-		}
-
+		
+		DataStorage.Instance.Clear(this);
+	
 		setContentView(R.layout.activity_main);
-
-		// _bundle = savedInstanceState;
-
+		
 		init();
+	}
+	@Override
+	protected void onResume()
+	{
+		DataStorage.Instance.Load(this);
+		super.onResume();
+	}
+	@Override
+	protected void onPause()
+	{
+		DataStorage.Instance.Save(this);
+		super.onPause();
 	}
 
 	@Override
 	protected void onSaveInstanceState(Bundle outState)
 	{
 		super.onSaveInstanceState(outState);
-
-		LatLng latLng = new LatLng(1.0, 2.0);
-		MarkerOptions marker = new MarkerOptions();
-		marker.position(latLng);
-		marker.title("Parcelable test");
-		marker.snippet("Parcelable test snippet");
-
-		outState.putParcelable("marker", marker);
-
 	}
 
 	protected void init()
 	{
+		//DataStorage.Instance.Load(this);
+		
 		if (mMap == null)
 		{
 			mMap = ((SupportMapFragment) getSupportFragmentManager().findFragmentById(R.id.map)).getMap();
@@ -96,35 +95,29 @@ public class MainActivity extends FragmentActivity implements LocationSource, Co
 			mLocationClient.connect();
 		}
 		markerPopup = new MarkerPopup(this);
-		
+		ParcelableTest();
 	}
 
 	void ParcelableTest()
 	{
-		LatLng latLng = new LatLng(1.0, 2.0);
-		MarkerOptions marker = new MarkerOptions();
-		marker.position(latLng);
-		marker.title("Parcelable test");
-		marker.snippet("Parcelable test snippet");
-
 		LaunchItem item = new LaunchItem();
-		String[] launchList = { "tksehd2" , "tksehd3" } ;
+		
 		item.SetItemId(1000);
-		item.SetMarker(marker);
-		item.SetLaunchList(launchList);
-				
-		Parcel p = Parcel.obtain();
+		item.SetMarker(new MarkerOptions().title("test1"));
 		
-		p.writeParcelable(item, 0);
-		byte[] marshall = p.marshall();
-		p.recycle();
+		LaunchItem item2 = new LaunchItem();
 		
-		Parcel newParcel = Parcel.obtain();
+		item2.SetItemId(1001);
+		item2.SetMarker(new MarkerOptions().title("test2"));
 		
-		newParcel.unmarshall(marshall, 0, marshall.length);
-		newParcel.setDataPosition(0);
-		LaunchItem newItem = newParcel.readParcelable(LaunchItem.class.getClassLoader());
-		newParcel.recycle();
+		LaunchItem item3 = new LaunchItem();
+		
+		item3.SetItemId(1002);
+		item3.SetMarker(new MarkerOptions().title("test3"));
+		
+		DataStorage.Instance.AddItem(item);
+		DataStorage.Instance.AddItem(item2);
+		DataStorage.Instance.AddItem(item3);
 	}
 
 	@Override
