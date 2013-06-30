@@ -1,18 +1,10 @@
 package kr.toyapps.localauncher;
 
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-
-import android.content.SharedPreferences;
-import android.content.SharedPreferences.Editor;
+import kr.toyapps.localauncher.LaunchItem.OnMarkerAddListener;
 import android.location.Location;
 import android.os.Bundle;
-import android.os.Parcel;
 import android.support.v4.app.FragmentActivity;
-import android.util.Base64;
-import android.util.Log;
 import android.widget.Button;
-import android.widget.Toast;
 
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.GooglePlayServicesClient.ConnectionCallbacks;
@@ -28,7 +20,6 @@ import com.google.android.gms.maps.LocationSource;
 import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.Marker;
-import com.google.android.gms.maps.model.MarkerOptions;
 
 public class MainActivity extends FragmentActivity implements LocationSource, ConnectionCallbacks, OnConnectionFailedListener, OnMarkerClickListener, OnMarkerDragListener, OnMapLongClickListener
 {
@@ -50,10 +41,10 @@ public class MainActivity extends FragmentActivity implements LocationSource, Co
 	protected void onCreate(Bundle savedInstanceState)
 	{
 		super.onCreate(savedInstanceState);
-		
-		DataStorage.Instance.Clear(this);
 	
 		setContentView(R.layout.activity_main);
+		
+		DataStorage.Instance.Load(this);
 		
 		init();
 	}
@@ -61,6 +52,8 @@ public class MainActivity extends FragmentActivity implements LocationSource, Co
 	protected void onResume()
 	{
 		DataStorage.Instance.Load(this);
+		init();
+		
 		super.onResume();
 	}
 	@Override
@@ -82,12 +75,8 @@ public class MainActivity extends FragmentActivity implements LocationSource, Co
 		
 		if (mMap == null)
 		{
-			mMap = ((SupportMapFragment) getSupportFragmentManager().findFragmentById(R.id.map)).getMap();
-			mMap.setMyLocationEnabled(true);
-			mMap.setLocationSource(this);
-			mMap.setOnMarkerDragListener(this);
-			mMap.setOnMapLongClickListener(this);
-			mMap.setOnMarkerClickListener(this);
+			mMap = ((SupportMapFragment) getSupportFragmentManager().findFragmentById(R.id.map)).getMap();			
+			initMapSetting();
 		}
 		if (mLocationClient == null)
 		{
@@ -95,31 +84,28 @@ public class MainActivity extends FragmentActivity implements LocationSource, Co
 			mLocationClient.connect();
 		}
 		markerPopup = new MarkerPopup(this);
-		ParcelableTest();
+		
+		LaunchItem[] items = DataStorage.Instance.GetAllItems();
+		if(items != null && items.length > 0)
+		{
+			initMapSetting();
+			for(LaunchItem item : items)
+			{
+				mMap.addMarker(item.toMarkerOptions());
+			}
+		}
 	}
 
-	void ParcelableTest()
+	void initMapSetting()
 	{
-		LaunchItem item = new LaunchItem();
-		
-		item.SetItemId(1000);
-		item.SetMarker(new MarkerOptions().title("test1"));
-		
-		LaunchItem item2 = new LaunchItem();
-		
-		item2.SetItemId(1001);
-		item2.SetMarker(new MarkerOptions().title("test2"));
-		
-		LaunchItem item3 = new LaunchItem();
-		
-		item3.SetItemId(1002);
-		item3.SetMarker(new MarkerOptions().title("test3"));
-		
-		DataStorage.Instance.AddItem(item);
-		DataStorage.Instance.AddItem(item2);
-		DataStorage.Instance.AddItem(item3);
+		mMap.clear();
+		mMap.setOnMarkerDragListener(this);
+		mMap.setOnMarkerClickListener(this);			
+		mMap.setMyLocationEnabled(true);
+		mMap.setLocationSource(this);			
+		mMap.setOnMapLongClickListener(this);
 	}
-
+	
 	@Override
 	public void onConnectionFailed(ConnectionResult result)
 	{
@@ -188,8 +174,15 @@ public class MainActivity extends FragmentActivity implements LocationSource, Co
 	public void onMapLongClick(LatLng point)
 	{
 		// TODO Auto-generated method stub
-		markerPopup.AddMarker(mMap, point);
-	}
+		markerPopup.AddMarker(mMap, point , new OnMarkerAddListener()
+		{
+			@Override
+			public void OnAddMarker(LaunchItem item)
+			{
+				DataStorage.Instance.AddItem(item);
+			}
+		}); 
+	}	
 
 	@Override
 	public boolean onMarkerClick(Marker marker)

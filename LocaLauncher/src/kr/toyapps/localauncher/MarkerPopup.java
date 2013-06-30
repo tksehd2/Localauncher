@@ -30,8 +30,9 @@ public class MarkerPopup
 		popup.setView(popupView);
 	}
 	
-	void AddMarker(final GoogleMap map, final LatLng position)
+	void AddMarker(final GoogleMap map, final LatLng position , final LaunchItem.OnMarkerAddListener onMarkerAddListener)
 	{
+		
 		_markerTitle.setText("");
 		_markerDesc.setText("");
 		
@@ -49,6 +50,13 @@ public class MarkerPopup
 										.snippet(_markerDesc.getText().toString())
 										.draggable(true);
 				map.addMarker(marker);
+				
+				LaunchItem item = new LaunchItem();
+				item.SetItemId(new java.util.Date().getTime());
+				item.SetMarker(marker);
+				item.SetLaunchList(new String[]{});
+				
+				onMarkerAddListener.OnAddMarker(item);
 			}
 		});
 		popup.setButton(AlertDialog.BUTTON_NEGATIVE, "Cancel", popupCloseListener);
@@ -84,4 +92,6 @@ public class MarkerPopup
 		}
 	};
 }
+
+
 

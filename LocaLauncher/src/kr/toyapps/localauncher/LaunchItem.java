@@ -1,34 +1,43 @@
 package kr.toyapps.localauncher;
 
-import java.util.ArrayList;
+import java.io.Serializable;
 
 import android.os.Parcel;
-import android.os.Parcelable;
 
+import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.MarkerOptions;
 
-public class LaunchItem implements Parcelable
+public class LaunchItem implements Serializable
 {
-	public int itemId;
-	public MarkerOptions marker;
+/*
+ * LaunchItem Listener Interface 
+ */
+	public interface OnMarkerAddListener
+	{
+		public void OnAddMarker(LaunchItem item);
+	}
+///////////////////////////////////////////////////////////////
+	
+	
+	
+	public long itemId;
+	public SerializableMarkerData MarkerData;
 	public String[] LaunchList;
 	
 	public LaunchItem()
 	{
 		itemId = 0;
-		marker = new MarkerOptions();
+		MarkerData = new SerializableMarkerData();
 		LaunchList = new String[0];
-	}
-	public LaunchItem(Parcel in)
-	{
-		readFromParcel(in);	
 	}
 	
 	void SetMarker(MarkerOptions Marker)
 	{
-		marker = Marker;
+		MarkerData.latLng = new SerializableLatLng(Marker.getPosition());
+		MarkerData.title = Marker.getTitle();
+		MarkerData.snippet = Marker.getSnippet();
 	}
-	void SetItemId(int id)
+	void SetItemId(long id)
 	{
 		itemId = id;
 	}
@@ -36,37 +45,16 @@ public class LaunchItem implements Parcelable
 	{
 		LaunchList = launchList;
 	}
-	@Override
-	public int describeContents()
+	
+	public MarkerOptions toMarkerOptions()
 	{
-		return 0;
+		MarkerOptions marker = new MarkerOptions();
+		
+		marker.position(new LatLng(MarkerData.latLng.latitude, MarkerData.latLng.longitude));
+		marker.title(MarkerData.title);
+		marker.snippet(MarkerData.snippet);
+		
+		return marker; 
 	}
-
-	@Override
-	public void writeToParcel(Parcel dest, int flags)
-	{
-		dest.writeInt(itemId);
-		dest.writeParcelable(marker, flags);
-		dest.writeStringArray(LaunchList);
-	}
-	private void readFromParcel(Parcel in)
-	{
-		itemId = in.readInt();
-		marker = in.readParcelable(MarkerOptions.class.getClassLoader());
-		//in.readStringArray(LaunchList);
-	}
-
-	public static final Parcelable.Creator CREATOR = new Parcelable.Creator()
-	{
-		public LaunchItem createFromParcel(Parcel in)
-		{
-			return new LaunchItem(in);
-		}
-
-		public LaunchItem[] newArray(int size)
-		{
-			return new LaunchItem[size];
-		}
-	};
-
 }
+

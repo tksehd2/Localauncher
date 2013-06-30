@@ -1,21 +1,29 @@
 package kr.toyapps.localauncher;
 
-import java.util.Dictionary;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
+import java.io.StreamCorruptedException;
 import java.util.HashMap;
+
+import org.apache.http.entity.SerializableEntity;
 
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.content.SharedPreferences.Editor;
 import android.os.Parcel;
 import android.util.Base64;
-import android.util.Log;
+import android.util.Base64InputStream;
 
 public class DataStorage
 {
 	public static DataStorage Instance = new DataStorage();
 	
-	private String parcelKey = "SavedData";
-	private HashMap<Integer, LaunchItem> _itemMap; 
+	private String SerializableKey = "SavedData";
+	private HashMap<Long, LaunchItem> _itemMap; 
 	
 	public DataStorage()
 	{
@@ -30,7 +38,7 @@ public class DataStorage
 		_itemMap.put(item.itemId, item);
 	}
 	
-	public LaunchItem Load(int itemId)
+	public LaunchItem GetItem(Long itemId)
 	{
 		if(_itemMap.containsKey(itemId))
 		{
@@ -38,7 +46,7 @@ public class DataStorage
 		}
 		return null;
 	}
-	public LaunchItem[] LoadAll()
+	public LaunchItem[] GetAllItems()
 	{
 		if(_itemMap.size() > 0)
 		{
@@ -48,60 +56,63 @@ public class DataStorage
 		}
 		return null;
 	}
+	
 	public void Clear(Context context)
 	{
-		SharedPreferences prefs = context.getSharedPreferences(parcelKey, Context.MODE_PRIVATE);
+		SharedPreferences prefs = context.getSharedPreferences(SerializableKey, Context.MODE_PRIVATE);
 		prefs.edit().clear().commit();
 	}
 	public void Save(Context context)
 	{
-		Parcel p = Parcel.obtain();
-	
-		p.writeMap(_itemMap);
-		
-		byte[] data = p.marshall();
-		
-		Editor edit = context.getSharedPreferences(parcelKey, Context.MODE_PRIVATE).edit();
-		
-		edit.putString(parcelKey, Base64.encodeToString(data, Base64.DEFAULT));
-		edit.commit();
-		
-		p.recycle();
+		ByteArrayOutputStream os = new ByteArrayOutputStream();
+		SerializableEntity se;
+		try
+		{
+			ObjectOutputStream objOutput = new ObjectOutputStream(os);
+			objOutput.writeObject(_itemMap);
+			
+			String encodedMap = Base64.encodeToString(os.toByteArray() , Base64.DEFAULT);
+			
+			Editor edit = context.getSharedPreferences(SerializableKey, Context.MODE_PRIVATE).edit();
+			edit.putString(SerializableKey, encodedMap);
+			edit.commit();
+			
+		} catch (IOException e)
+		{
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 	}
 	
 	public void Load(Context context)
 	{
-		SharedPreferences prefs = context.getSharedPreferences(parcelKey, Context.MODE_PRIVATE);
-		
-		byte[] data = Base64.decode(prefs.getString(parcelKey, ""), Base64.DEFAULT);
+		SharedPreferences prefs = context.getSharedPreferences(SerializableKey, Context.MODE_PRIVATE);
+		byte[] data = Base64.decode(prefs.getString(SerializableKey, ""), Base64.DEFAULT);
 		
 		if(data.length > 0)
 		{
-			Parcel p = Parcel.obtain();
-			
-			p.unmarshall(data, 0, data.length);
-			p.setDataPosition(0);
-			
-			p.readMap(_itemMap, HashMap.class.getClassLoader());
-			
-/*			LaunchItem[] loadItem = (LaunchItem[])p.readParcelableArray(LaunchItem.class.getClassLoader());
-
+			ByteArrayInputStream is = new ByteArrayInputStream(data);
+			ObjectInputStream objInput;
 			try
 			{
-				for (LaunchItem item : loadItem)
-				{
-					_itemMap.put(item.itemId, item);
-				}
-			} catch (Exception e)
+				 objInput = new ObjectInputStream(is);
+				 
+				 _itemMap.clear();
+				 _itemMap = (HashMap<Long, LaunchItem>)objInput.readObject();
+				 
+			} catch (StreamCorruptedException e)
 			{
-				Log.v("LocaLauncher Exception", e.toString());
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			} catch (IOException e)
+			{
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			} catch (ClassNotFoundException e)
+			{
+				// TODO Auto-generated catch block
+				e.printStackTrace();
 			}
-*/
-			p.recycle();
 		}
 	}
 }
-
-
-// egit 테스트중 
-// built-in version control 보다 좋은건 없지! 
